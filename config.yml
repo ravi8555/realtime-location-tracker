@@ -1,7 +1,0 @@
-tunnel: tracker-app
-credentials-file: C:\Users\RAVINDRA\.cloudflared\1e94d32f-0656-49d4-9461-746b8287db91.json
-
-ingress:
-  - hostname: tracker.portfoliohub.in
-    service: http://localhost:8000
-  - service: http_status:404
