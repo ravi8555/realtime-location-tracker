@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location shareing application</title>
+    <style>
+        body{
+            background: #000;
+            color: #fff;
+        }
+        #map { height: 90vh; }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>   
+</head>
+<body>
+    <h1></h1>
+     <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+     <script src="/socket.io/socket.io.js"></script>
+     <script>
+        const socket = io();
+        const map = L.map('map').setView([51.505, -0.09], 13);
+
+        const remoteMarker = new Map()
+
+        socket.on('server:location:update', (data)=>{
+            const {id, latitude, longitude} = data;
+            if(!remoteMarker.has(id)){
+                const marker = L.marker([latitude. longitude]).addTo(map).bindPopup(id);
+                remoteMarker.set({id, marker})
+
+
+            }else{
+                const existingmarker = remoteMarker.get(id);
+                existingmarker.setLatLng({latitude, longitude})
+            }
+        })
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            function getuserCurrentLocation() {
+                return new Promise((res, rej) => {
+                    if ('geolocation' in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                const latitude = position.coords.latitude
+                                const longitude = position.coords.longitude
+                                res({ latitude, longitude })
+                                console.log(`Got users Position`, position)
+                            },
+                            (err) => rej(err),
+                            { enableHighAccuracy: true }
+                        )
+
+                    } else {
+                        alert("Geo Location is not available in this browser")
+                    }
+                })
+
+
+            }
+            let myCurrentLocationMarker = null
+            async function main() {
+                setInterval(async () => {
+                    const { latitude, longitude } = await getuserCurrentLocation();
+                    socket.emit('client:location:update',{latitude, longitude})
+                    if (!myCurrentLocationMarker) {
+
+                        myCurrentLocationMarker = L.marker([latitude, longitude])
+                            .addTo(map)
+                            .bindPopup('You are here')
+                    } else {
+                        myCurrentLocationMarker.setLatLng([latitude, longitude])
+                    }
+                }, 10 * 1000)
+
+            }
+
+
+
+            window.addEventListener('load', main)
+
+     </script>
+</body>
+</html>
